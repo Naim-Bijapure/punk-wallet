@@ -6,7 +6,8 @@ import { Alert, Button, Col, Row, Select, Spin, Input, Modal, notification } fro
 import "antd/dist/antd.css";
 import { useUserAddress } from "eth-hooks";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
-import Web3Modal from "web3modal";
+// import Web3Modal from "web3modal";
+import { SafeAppWeb3Modal } from "@gnosis.pm/safe-apps-web3modal";
 import "./App.css";
 import {
   Account,
@@ -55,7 +56,7 @@ const { ethers } = require("ethers");
 
 /// 📡 What chain are your contracts deployed to?
 const cachedNetwork = window.localStorage.getItem("network");
-let targetNetwork = NETWORKS[cachedNetwork || "ethereum"]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+let targetNetwork = NETWORKS[cachedNetwork || "goerli"]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 if (!targetNetwork) {
   targetNetwork = NETWORKS["ethereum"];
 }
@@ -88,7 +89,7 @@ let scanner;
 /*
   Web3 modal helps us "connect" external wallets:
 */
-const web3Modal = new Web3Modal({
+const web3Modal = new SafeAppWeb3Modal({
   // network: "mainnet", // optional
   cacheProvider: true, // optional
   providerOptions: {
@@ -133,6 +134,7 @@ function App(props) {
   },[ localProvider ])*/
 
   const [checkingBalances, setCheckingBalances] = useState();
+  const [isSafeApp, setIsSafeApp] = useState(false);
   // a function to check your balance on every network and switch networks if found...
   const checkBalances = async address => {
     if (!checkingBalances) {
@@ -723,7 +725,8 @@ function App(props) {
   );
 
   const loadWeb3Modal = useCallback(async () => {
-    const provider = await web3Modal.connect();
+    // const provider = await web3Modal.connect();
+    const provider = await web3Modal.requestProvider();
     provider.on("disconnect", () => {
       console.log("LOGOUT!");
       logoutOfWeb3Modal();
@@ -736,6 +739,21 @@ function App(props) {
       loadWeb3Modal();
     }
   }, [loadWeb3Modal]);
+
+  // check the current state of  Safe App
+  const onCheckIsSafeApp = useCallback(async () => {
+    const IsSafeAppStatus = await web3Modal.isSafeApp();
+    setIsSafeApp(IsSafeAppStatus);
+    if (IsSafeAppStatus) {
+      loadWeb3Modal();
+    }
+  }, [loadWeb3Modal]);
+
+  // check isSafeApp at first load
+  useEffect(() => {
+    void onCheckIsSafeApp();
+  }, [onCheckIsSafeApp]);
+
 
   const [route, setRoute] = useState();
   useEffect(() => {
